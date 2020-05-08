@@ -1,7 +1,9 @@
 '''
 Written by Tamas Gabor Csapo <csapot@tmit.bme.hu>
 First version Jan 14, 2019
+Restructured Jan 16, 2020 - for MRI data
 
+Keras implementation of Csapó T.G., ,,Speaker dependent articulatory-to-acoustic mapping using real-time MRI of the vocal tract'', submitted to Interspeech 2020.
 '''
 
 import numpy as np
@@ -17,7 +19,7 @@ import random
 import vocoder_LSP_sptk
 
 from keras.models import Sequential
-from keras.layers import Input, Dense, Conv2D, MaxPooling2D, Flatten, LSTM, TimeDistributed
+from keras.layers import Input, Dense, Conv2D, MaxPooling2D, Flatten
 from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint
 
 from sklearn.model_selection import train_test_split
@@ -80,22 +82,6 @@ def get_mgc_lsp_coeff(basefilename):
         (mgc_lsp_coeff, lf0) = vocoder_LSP_sptk.encode(basefilename, samplingFrequency, frameLength, frameShift, order, alpha, stage)
     return (mgc_lsp_coeff, lf0)
 
-# convert an array of values into a dataset matrix
-# code with modifications from
-# https://machinelearningmastery.com/time-series-prediction-lstm-recurrent-neural-networks-python-keras/
-def create_dataset_img(data_in_X, data_in_Y, look_back=1):
-    (dim1_X, dim2_X, dim3_X, dim4_X) = data_in_X.shape
-    (dim1_Y, dim2_Y) = data_in_Y.shape
-    data_out_X = np.empty((dim1_X - look_back - 1, look_back, dim2_X, dim3_X, dim4_X))
-    data_out_Y = np.empty((dim1_Y - look_back - 1, dim2_Y))
-    
-    for i in range(dim1_X - look_back - 1):
-        for j in range(look_back):
-            data_out_X[i, j] = data_in_X[i + j]
-        data_out_Y[i] = data_in_Y[i + j]
-    return data_out_X, data_out_Y
-
-
 
 for speaker in ['f1', 'f2', 'm1', 'm2']:
     # TODO: modify this according to your data path
@@ -109,9 +95,6 @@ for speaker in ['f1', 'f2', 'm1', 'm2']:
     alpha = 0.42
     stage = 3
     n_mgc = order + 1
-
-    # context window of LSTM
-    n_sequence = 10
 
     # properties of MRI videos
     framesPerSec = 23.18
@@ -184,10 +167,6 @@ for speaker in ['f1', 'f2', 'm1', 'm2']:
                     
         mri[train_valid] = mri[train_valid][0 : mri_size].reshape(-1, n_width, n_height, 1)
         mgc[train_valid] = mgc[train_valid][0 : mgc_size]
-        
-        # restructure for LSTM
-        mri[train_valid], mgc[train_valid] = create_dataset_img(mri[train_valid], mgc[train_valid], look_back = n_sequence)
-
 
 
     
@@ -206,29 +185,25 @@ for speaker in ['f1', 'f2', 'm1', 'm2']:
 
     ### single training
     model = Sequential()
-    model.add(TimeDistributed(Conv2D(8, (3,3), activation='relu', input_shape=(None, n_width, n_height, 1), padding='same')))
-    model.add(TimeDistributed(MaxPooling2D((2,2), padding='same')))
-    model.add(TimeDistributed(Conv2D(16, (3,3), activation='relu', padding='same')))
-    model.add(TimeDistributed(MaxPooling2D((2,2), padding='same')))
-    model.add(TimeDistributed(Conv2D(32, (3,3), activation='relu', padding='same')))
-    model.add(TimeDistributed(MaxPooling2D((2,2), padding='same')))
-    model.add(TimeDistributed(Flatten()))
-    model.add(LSTM(500, kernel_initializer='normal', activation='relu', return_sequences=True))
-    model.add(LSTM(500, kernel_initializer='normal', activation='relu', return_sequences=False))
+    model.add(Conv2D(8, (3, 3), activation='relu', input_shape=(n_width,n_height, 1), padding='same'))
+    model.add(MaxPooling2D((2,2), padding='same'))
+    model.add(Conv2D(16, (3,3), activation='relu', padding='same'))
+    model.add(MaxPooling2D((2,2), padding='same'))
+    model.add(Conv2D(32, (3,3), activation='relu', padding='same'))
+    model.add(MaxPooling2D((2,2), padding='same'))
+    model.add(Flatten())
     model.add(Dense(500, kernel_initializer='normal', activation='relu'))
     model.add(Dense(500, kernel_initializer='normal', activation='relu'))
     model.add(Dense(n_mgc, kernel_initializer='normal', activation='linear'))
 
-    model.build()
-
 
     model.compile(loss='mean_squared_error', optimizer='adam')
 
-    # print(model.summary())
+    print(model.summary())
 
 
     current_date = '{date:%Y-%m-%d_%H-%M-%S}'.format( date=datetime.datetime.now() )
-    model_name = 'models/MRI2SPEECH_CNN-LSTM_' + speaker + '_' + current_date
+    model_name = 'models/MRI2SPEECH_CNN_' + speaker + '_' + current_date
 
     print('starting training', speaker, current_date)
 

@@ -1,7 +1,9 @@
 '''
 Written by Tamas Gabor Csapo <csapot@tmit.bme.hu>
 First version Jan 14, 2019
+Restructured Jan 16, 2020 - for MRI data
 
+Keras implementation of Csapó T.G., ,,Speaker dependent articulatory-to-acoustic mapping using real-time MRI of the vocal tract'', submitted to Interspeech 2020.
 '''
 
 import numpy as np
@@ -17,7 +19,7 @@ import random
 import vocoder_LSP_sptk
 
 from keras.models import Sequential
-from keras.layers import Input, Dense, Conv2D, MaxPooling2D, Flatten
+from keras.layers import Dense
 from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint
 
 from sklearn.model_selection import train_test_split
@@ -163,7 +165,7 @@ for speaker in ['f1', 'f2', 'm1', 'm2']:
                 
                 print('n_frames_all: ', mri_size, 'mgc_size: ', mgc_size)
                     
-        mri[train_valid] = mri[train_valid][0 : mri_size].reshape(-1, n_width, n_height, 1)
+        mri[train_valid] = mri[train_valid][0 : mri_size].reshape(-1, n_width*n_height)
         mgc[train_valid] = mgc[train_valid][0 : mgc_size]
 
 
@@ -183,17 +185,12 @@ for speaker in ['f1', 'f2', 'm1', 'm2']:
 
     ### single training
     model = Sequential()
-    model.add(Conv2D(8, (3, 3), activation='relu', input_shape=(n_width,n_height, 1), padding='same'))
-    model.add(MaxPooling2D((2,2), padding='same'))
-    model.add(Conv2D(16, (3,3), activation='relu', padding='same'))
-    model.add(MaxPooling2D((2,2), padding='same'))
-    model.add(Conv2D(32, (3,3), activation='relu', padding='same'))
-    model.add(MaxPooling2D((2,2), padding='same'))
-    model.add(Flatten())
-    model.add(Dense(500, kernel_initializer='normal', activation='relu'))
-    model.add(Dense(500, kernel_initializer='normal', activation='relu'))
+    model.add(Dense(1000, input_dim=n_width*n_height, kernel_initializer='normal', activation='relu'))
+    model.add(Dense(1000, kernel_initializer='normal', activation='relu'))
+    model.add(Dense(1000, kernel_initializer='normal', activation='relu'))
+    model.add(Dense(1000, kernel_initializer='normal', activation='relu'))
+    model.add(Dense(1000, kernel_initializer='normal', activation='relu'))
     model.add(Dense(n_mgc, kernel_initializer='normal', activation='linear'))
-
 
     model.compile(loss='mean_squared_error', optimizer='adam')
 
@@ -201,7 +198,7 @@ for speaker in ['f1', 'f2', 'm1', 'm2']:
 
 
     current_date = '{date:%Y-%m-%d_%H-%M-%S}'.format( date=datetime.datetime.now() )
-    model_name = 'models/MRI2SPEECH_CNN_' + speaker + '_' + current_date
+    model_name = 'models/MRI2SPEECH_FC-DNN_baseline_' + speaker + '_' + current_date
 
     print('starting training', speaker, current_date)
 
