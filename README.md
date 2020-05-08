@@ -4,6 +4,9 @@ Keras implementation of Csapó T.G., ,,Speaker dependent articulatory-to-acousti
 
 USC-TIMIT database at: https://sail.usc.edu/span/usc-timit/
 
+Pretrained models and synthesized samples (Jan 16, 2020) at
+https://simonyi-my.sharepoint.com/:f:/g/personal/csapszi_sch_bme_hu/EqPHlfuXpulEip9xVu42q7kBqaVmhrcaN6W3PnU-qEtPhA?e=EKPe9l
+
 **Requirements**
 
 - Python 3.6.9
