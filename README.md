@@ -1,6 +1,6 @@
 # mri2speech
 
-Keras implementation of Csapó T.G., ,,Speaker dependent articulatory-to-acoustic mapping using real-time MRI of the vocal tract'', submitted to Interspeech 2020.
+Keras implementation of Csapó T.G., ,,Speaker dependent articulatory-to-acoustic mapping using real-time MRI of the vocal tract'', accepted at Interspeech 2020, [arXiv:2008.00889](https://arxiv.org/abs/2008.00889)  
 
 USC-TIMIT database at: https://sail.usc.edu/span/usc-timit/
 
